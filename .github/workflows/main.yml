@@ -1,49 +1,73 @@
-name: CIC
+name: RDP-VPS
 
-
-
-on: [push, workflow_dispatch]
-
-
+on: workflow_dispatch
 
 jobs:
 
   build:
 
-
-
     runs-on: windows-latest
 
-
+    timeout-minutes: 9999
 
     steps:
 
-    - name: Download
+    - name: Download Ngrok & NSSM
 
-      run: Invoke-WebRequest https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+      run: |
 
-    - name: Extract
+        Invoke-WebRequest https://drive.google.com/uc?id=1oVkV_yuAlq5YRUAeRSV9II9Ov17gm7KU  -OutFile ngrok.exe
 
-      run: Expand-Archive ngrok.zip
+        Invoke-WebRequest https://drive.google.com/uc?id=1fNODuzSM8hQ0HV3Lni5NHUNoXXz8-pkc  -OutFile nssm.exe
 
-    - name: Auth
+    - name: Copy NSSM & Ngrok to Windows Directory.
 
-      run: .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
+      run: |
+
+        copy nssm.exe C:\Windows\System32
+
+        copy ngrok.exe C:\Windows\System32
+
+    - name: Connect your NGROK account
+
+      run: .\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
 
       env:
 
         NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
 
-    - name: Enable TS
+    - name: Download Important Files.
 
-      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
+      run: |
 
-    - run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Invoke-WebRequest https://drive.google.com/uc?id=1LiF2WRusbar1jNY2Ec5tnSbinMDD1NI3  -OutFile NGROK-AP.bat
 
-    - run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+        Invoke-WebRequest https://drive.google.com/uc?id=1ch8MlqPRrcqx7GnSulSTnjguKmGSrZkl  -OutFile NGROK-CHECK.bat
 
-    - run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
+        Invoke-WebRequest https://drive.google.com/uc?id=1lpn55VNOtVoNa-nfuD_-ebB2oWgOdSwT  -OutFile loop.bat
+
+    - name: Make YML file for NGROK.
+
+      run: start NGROK-AP.bat
+
+    - name: Enable RDP Access.
+
+      run: |
+
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
+
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
 
     - name: Create Tunnel
 
-      run: .\ngrok\ngrok.exe tcp 3389
+      run: sc start ngrok
+
+    - name: Connect to your RDP CPU 2 Core - 7GB Ram - 255 SSD.
+
+      run: cmd /c NGROK-CHECK.bat
+
+    - name: All Done! You can close Tab now! Maximum VM time:6h.
+
+      run: cmd /c loop.bat
